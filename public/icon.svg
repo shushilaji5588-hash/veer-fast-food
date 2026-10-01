@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FBBF24" />
+      <stop offset="50%" stop-color="#F59E0B" />
+      <stop offset="100%" stop-color="#D97706" />
+    </linearGradient>
+    <linearGradient id="redGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#EF4444" />
+      <stop offset="100%" stop-color="#B91C1C" />
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#000" flood-opacity="0.5" />
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="512" height="512" rx="104" fill="#111827" />
+
+  <!-- Outer Golden Border Ring -->
+  <rect x="16" y="16" width="480" height="480" rx="90" fill="none" stroke="url(#goldGrad)" stroke-width="8" stroke-dasharray="16 10" opacity="0.65" />
+
+  <!-- Inner Badge Frame -->
+  <rect x="36" y="36" width="440" height="440" rx="76" fill="#1F2937" filter="url(#shadow)" stroke="#374151" stroke-width="3" />
+
+  <!-- Decorative Chef Hat & Burger Icon Motif -->
+  <g transform="translate(256, 175) scale(1.15)">
+    <!-- Burger Bun Top -->
+    <path d="M-80,-10 C-80,-65 80,-65 80,-10 Z" fill="url(#goldGrad)" />
+    <!-- Sesame seeds -->
+    <ellipse cx="-40" cy="-35" rx="5" ry="3" fill="#FFF" opacity="0.8" transform="rotate(-15 -40 -35)" />
+    <ellipse cx="0" cy="-45" rx="5" ry="3" fill="#FFF" opacity="0.8" />
+    <ellipse cx="40" cy="-35" rx="5" ry="3" fill="#FFF" opacity="0.8" transform="rotate(15 40 -35)" />
+    
+    <!-- Cheese slice -->
+    <polygon points="-82,-5 82,-5 60,14 0,4 -60,14" fill="#FACC15" />
+    <!-- Patty / Burger filling -->
+    <rect x="-84" y="12" width="168" height="24" rx="10" fill="#78350F" />
+    <!-- Lettuce wave -->
+    <path d="M-86,8 Q-65,-2 -45,8 Q-25,18 -5,8 Q15,-2 35,8 Q55,18 75,8 Q86,2 86,10 L-86,10 Z" fill="#22C55E" />
+    <!-- Tomato slice -->
+    <rect x="-78" y="28" width="156" height="12" rx="6" fill="url(#redGrad)" />
+    <!-- Burger Bun Bottom -->
+    <path d="M-80,44 C-80,68 80,68 80,44 Z" fill="url(#goldGrad)" />
+  </g>
+
+  <!-- Typography: VEER -->
+  <text x="256" y="345" font-family="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-weight="900" font-size="52" fill="#F59E0B" text-anchor="middle" letter-spacing="4">
+    VEER
+  </text>
+
+  <!-- Typography: FAST FOOD -->
+  <text x="256" y="388" font-family="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-weight="800" font-size="28" fill="#EF4444" text-anchor="middle" letter-spacing="6">
+    FAST FOOD
+  </text>
+
+  <!-- Sub-badge -->
+  <g transform="translate(256, 428)">
+    <rect x="-105" y="-16" width="210" height="32" rx="16" fill="#111827" stroke="url(#goldGrad)" stroke-width="2" />
+    <text x="0" y="5" font-family="system-ui, -apple-system, sans-serif" font-weight="700" font-size="14" fill="#F9FAFB" text-anchor="middle" letter-spacing="2">
+      OFFLINE POS
+    </text>
+  </g>
+</svg>

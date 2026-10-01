@@ -1,5 +1,13 @@
 import initSqlJs, { Database } from 'sql.js';
-import { saveSqliteToDisk, loadSqliteFromDisk, clearSqliteDisk } from './storage';
+import sqlWasmAssetUrl from 'sql.js/dist/sql-wasm.wasm?url';
+import {
+  saveSqliteToDisk,
+  loadSqliteFromDisk,
+  clearSqliteDisk,
+  saveWasmBinaryToDisk,
+  loadWasmBinaryFromDisk,
+  clearWasmBinaryDisk,
+} from './storage';
 
 let dbInstance: Database | null = null;
 let initPromise: Promise<Database> | null = null;
@@ -28,7 +36,75 @@ export function formatDateTime(isoString?: string): string {
 }
 
 /**
- * Initialize SQLite Database with fallback & IndexedDB storage
+ * Validate that an ArrayBuffer begins with the WebAssembly binary magic number:
+ * 0x00, 0x61, 0x73, 0x6d ('\0asm')
+ * This strictly rejects HTML fallback responses (e.g. 0x3c, 0x21, 0x64, 0x6f for '<!do')
+ */
+export function isValidWasmBinary(buffer: ArrayBuffer | null | undefined): buffer is ArrayBuffer {
+  if (!buffer || buffer.byteLength < 4) return false;
+  const bytes = new Uint8Array(buffer, 0, 4);
+  return bytes[0] === 0x00 && bytes[1] === 0x61 && bytes[2] === 0x73 && bytes[3] === 0x6d;
+}
+
+/**
+ * Robust multi-tier resolver for sql-wasm.wasm
+ * 1. Checks local IndexedDB cache (verifying magic bytes)
+ * 2. Fetches candidate URLs in priority order (bundled asset url, root /sql-wasm.wasm, base url)
+ * 3. Strictly verifies WebAssembly magic header before accepting
+ */
+async function resolveWasmBinary(): Promise<ArrayBuffer | null> {
+  // Tier 1: Check IndexedDB
+  try {
+    const cached = await loadWasmBinaryFromDisk();
+    if (cached) {
+      if (isValidWasmBinary(cached)) {
+        return cached;
+      } else {
+        console.warn('[SQLite WASM] Found non-WASM data in IndexedDB (likely previous HTML fallback error), purging...');
+        await clearWasmBinaryDisk();
+      }
+    }
+  } catch (err) {
+    console.warn('[SQLite WASM] Error checking IndexedDB for WASM:', err);
+  }
+
+  // Tier 2: Fetch candidates
+  const baseUrl = typeof import.meta !== 'undefined' && import.meta.env?.BASE_URL ? import.meta.env.BASE_URL : '/';
+  const candidateUrls = [
+    sqlWasmAssetUrl,
+    '/sql-wasm.wasm',
+    `${baseUrl.replace(/\/$/, '')}/sql-wasm.wasm`,
+    './sql-wasm.wasm',
+    'sql-wasm.wasm',
+  ].filter(Boolean);
+
+  const uniqueUrls = Array.from(new Set(candidateUrls));
+
+  for (const url of uniqueUrls) {
+    try {
+      const resp = await fetch(url);
+      if (resp.ok) {
+        const buffer = await resp.arrayBuffer();
+        if (isValidWasmBinary(buffer)) {
+          // Asynchronously persist to IndexedDB for 100% offline startup
+          saveWasmBinaryToDisk(buffer).catch((e) => {
+            console.warn('[SQLite WASM] Failed saving WASM to IndexedDB:', e);
+          });
+          return buffer;
+        } else {
+          console.warn(`[SQLite WASM] Fetched ${url} but response was not a WebAssembly binary (likely HTML SPA redirect).`);
+        }
+      }
+    } catch (err) {
+      console.warn(`[SQLite WASM] Failed fetching candidate ${url}:`, err);
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Initialize SQLite Database with dual-tier offline fallback & IndexedDB storage
  */
 export async function getSqliteDb(): Promise<Database> {
   if (dbInstance) return dbInstance;
@@ -36,9 +112,20 @@ export async function getSqliteDb(): Promise<Database> {
 
   initPromise = (async () => {
     try {
-      const SQL = await initSqlJs({
-        locateFile: () => '/sql-wasm.wasm',
-      });
+      const wasmBuffer = await resolveWasmBinary();
+
+      const config: Parameters<typeof initSqlJs>[0] = wasmBuffer
+        ? { wasmBinary: wasmBuffer }
+        : {
+            locateFile: (file: string) => {
+              if (file === 'sql-wasm.wasm') {
+                return sqlWasmAssetUrl || '/sql-wasm.wasm';
+              }
+              return `/${file}`;
+            },
+          };
+
+      const SQL = await initSqlJs(config);
 
       const existingBinary = await loadSqliteFromDisk();
       let db: Database;

@@ -1,17 +1,47 @@
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
+import fs from 'fs';
 import path from 'path';
-import { defineConfig } from 'vite';
+import { fileURLToPath } from 'url';
+import { defineConfig, Plugin } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
+
+function sqlWasmPlugin(): Plugin {
+  return {
+    name: 'sql-wasm-emitter',
+    generateBundle() {
+      const wasmPath = path.resolve('node_modules/sql.js/dist/sql-wasm.wasm');
+      if (fs.existsSync(wasmPath)) {
+        this.emitFile({
+          type: 'asset',
+          fileName: 'sql-wasm.wasm',
+          source: fs.readFileSync(wasmPath),
+        });
+      }
+    },
+  };
+}
 
 export default defineConfig(() => {
   return {
     plugins: [
       react(),
       tailwindcss(),
+      sqlWasmPlugin(),
       VitePWA({
         registerType: 'autoUpdate',
-        includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'icon.svg', 'sql-wasm.wasm'],
+        injectRegister: 'auto',
+        includeAssets: [
+          'favicon.ico',
+          'apple-touch-icon.png',
+          'icon.svg',
+          'sql-wasm.wasm',
+          'pwa-192x192.png',
+          'pwa-512x512.png',
+          'pwa-maskable-512x512.png',
+          '_headers',
+          '_redirects',
+        ],
         manifest: {
           id: '/',
           name: 'VEER FAST FOOD',
@@ -20,6 +50,7 @@ export default defineConfig(() => {
           theme_color: '#111827',
           background_color: '#111827',
           display: 'standalone',
+          display_override: ['standalone', 'minimal-ui'],
           orientation: 'portrait',
           start_url: '/',
           scope: '/',
@@ -45,27 +76,19 @@ export default defineConfig(() => {
           ],
         },
         workbox: {
-          globPatterns: ['**/*.{js,css,html,ico,png,svg,wasm,woff,woff2}'],
+          globPatterns: ['**/*.{js,css,html,ico,png,svg,wasm,woff,woff2,webmanifest}'],
+          maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5 MiB to ensure sql-wasm.wasm (643KB) is precached
+          navigateFallback: '/index.html',
+          navigateFallbackDenylist: [/^\/api/, /\.wasm$/i], // Never return index.html for .wasm requests
+          cleanupOutdatedCaches: true,
+          clientsClaim: true,
+          skipWaiting: true,
           runtimeCaching: [
             {
-              urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
+              urlPattern: ({ url }) => url.pathname.endsWith('.wasm'),
               handler: 'CacheFirst',
               options: {
-                cacheName: 'google-fonts-cache',
-                expiration: {
-                  maxEntries: 10,
-                  maxAgeSeconds: 60 * 60 * 24 * 365,
-                },
-                cacheableResponse: {
-                  statuses: [0, 200],
-                },
-              },
-            },
-            {
-              urlPattern: /^https:\/\/fonts\.gstatic\.com\/.*/i,
-              handler: 'CacheFirst',
-              options: {
-                cacheName: 'gstatic-fonts-cache',
+                cacheName: 'sqlite-wasm-cache',
                 expiration: {
                   maxEntries: 10,
                   maxAgeSeconds: 60 * 60 * 24 * 365,
@@ -85,7 +108,7 @@ export default defineConfig(() => {
     ],
     resolve: {
       alias: {
-        '@': path.resolve(__dirname, './src'),
+        '@': fileURLToPath(new URL('./src', import.meta.url)),
       },
     },
     server: {

@@ -1,0 +1,4 @@
+# Cloudflare Pages Redirects: Ensure static wasm is served directly and never redirected to index.html
+/sql-wasm.wasm /sql-wasm.wasm 200
+/assets/*.wasm /assets/:splat.wasm 200
+/*.wasm /:splat.wasm 200
