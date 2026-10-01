@@ -1,0 +1,6 @@
+{
+  "name": "VEER FAST FOOD",
+  "description": "Offline-First Restaurant & Hotel Management POS App for Android & iOS with SQLite, table orders, parcel billing, inventory, employee tracking, and business analytics.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
